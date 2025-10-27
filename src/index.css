@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark premium base: slightly lighter charcoal background, light text */
+body { @apply text-zinc-100 bg-[#222222]; }
+a { @apply underline-offset-2; }
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
