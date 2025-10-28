@@ -455,12 +455,23 @@ function LeadForm({ compact=false, serviceTitle }) {
   const [data, setData] = useState({ nombre: "", telefono: "", email: "", mensaje: "" });
   const [errors, setErrors] = useState({});
   const navigate = useNavigate();
+  const location = useLocation();
 
   const validate = () => {
     const e = {};
     if (!data.nombre.trim()) e.nombre = "Ingresa tu nombre";
     if (!data.telefono.trim()) e.telefono = "Ingresa tu teléfono";
     if (data.email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(data.email)) e.email = "Correo no válido";
+    {
+      const _email = (data.email || "").trim();
+      if (_email) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(_email)) {
+          e.email = "Correo no válido";
+        } else if (e.email) {
+          delete e.email;
+        }
+      }
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -468,7 +479,22 @@ function LeadForm({ compact=false, serviceTitle }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
-    const text = encodeURIComponent(`Hola, soy ${data.nombre}. Me interesa ${serviceTitle || "una consulta"}.\\nTel: ${data.telefono}\\nCorreo: ${data.email}\\nMensaje: ${data.mensaje}`);
+    // Envío por correo (no bloquea el flujo a WhatsApp)
+    try {
+      fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nombre: (data.nombre||'').trim(),
+          telefono: (data.telefono||'').trim(),
+          email: (data.email||'').trim(),
+          mensaje: (data.mensaje||'').trim(),
+          serviceTitle: serviceTitle || 'Consulta',
+          sourcePath: location?.pathname || '/'
+        })
+      }).catch(()=>{});
+    } catch {}
+    const text = encodeURIComponent(`Hola, soy ${(data.nombre||'').trim()}. Me interesa ${serviceTitle || "una consulta"}.\nTel: ${(data.telefono||'').trim()}\nCorreo: ${(data.email||'').trim()}\nMensaje: ${(data.mensaje||'').trim()}`);
     const url = `https://wa.me/${BRAND.whatsapp}?text=${text}`;
     window.open(url, "_blank");
     navigate("/gracias");
@@ -486,7 +512,7 @@ function LeadForm({ compact=false, serviceTitle }) {
           {errors.telefono && <p className="text-xs text-red-600 mt-1">{errors.telefono}</p>}
         </div>
         <div>
-          <Input placeholder="Correo" type="email" value={data.email} onChange={e=>setData({...data,email:e.target.value})} />
+          <Input placeholder="Correo" type="email" value={data.email} onChange={e=>setData({...data,email:(e.target.value || '').trim()})} />
           {errors.email && <p className="text-xs text-red-600 mt-1">{errors.email}</p>}
         </div>
       </div>
@@ -670,3 +696,4 @@ function NotFound() {
     </main>
   );
 }
+
